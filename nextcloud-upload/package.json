@@ -1,0 +1,15 @@
+{
+  "name": "nextcloud-upload",
+  "version": "1.0.0",
+  "description": "",
+  "main": "/run.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "glob": "^10.3.1",
+    "nextcloud-chunk-file-upload": "^1.1.1"
+  }
+}

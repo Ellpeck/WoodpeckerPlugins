@@ -10,7 +10,8 @@ steps:
       server: https://cloud.ellpeck.de # the server to use
       user: EllBot # the user
       token: access-token # the access token, or password if 2FA is disabled
-      files: "**/*.md" # the file(s), uses glob pattern
+      files: # the file(s), uses glob patterns
+        - "**/*.md"
       dest: Uploads/CoolMarkdownFiles # the destination directory
       basedir: "." # optional, local base directory for files, defaults to .
       chunksize: # optional, chunk size in bytes, defaults to 52428800

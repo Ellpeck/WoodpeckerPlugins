@@ -28,42 +28,44 @@ upload();
 async function upload() {
     let basePath = `${serverEnv}/remote.php/dav`;
     const upload = new Upload(basePath, userEnv, userEnv, tokenEnv);
-    let files = await glob.glob(filesEnv, { cwd: baseDir });
-    if (!files.length)
-        console.log("No files to upload");
-    for (let file of files) {
-        let dest = `${destEnv}/${file}`;
-        if (!quiet)
-            console.log(`Uploading ${file} to ${dest}`);
-
-        // we have to explicitly create any directories that don't exist yet
-        // (https://github.com/shiftpi/nextcloud-chunk-file-upload/issues/22)
-        let currDir = "";
-        for (let dir of dest.split("/").slice(0, -1)) {
-            currDir += `${dir}/`;
-            try {
-                await axios.request({
-                    method: 'mkcol',
-                    url: `${basePath}/files/${userEnv}/${currDir}`,
-                    auth: {
-                        username: userEnv,
-                        password: tokenEnv
-                    }
-                });
-                if (!quiet)
-                    console.log(`Created directory ${currDir}`);
-            } catch (error) {
-                // this is fine since the directory likely already exists
-            }
-        }
-
-        // use lib to upload file
-        await upload.uploadFile(`${baseDir}/${file}`, dest, chunkSizeEnv).then(e => {
+    for (let pattern of filesEnv.split(",")) {
+        let files = await glob.glob(pattern, { cwd: baseDir });
+        if (!files.length)
+            console.log("No files to upload");
+        for (let file of files) {
+            let dest = `${destEnv}/${file}`;
             if (!quiet)
-                console.log(`Uploaded ${file} to ${dest} (${e})`);
-        }).catch(e => {
-            console.log(`Failed to upload file ${file} to ${dest} (${e}, error ${e.httpErrorCode}, ${e.httpErrorMessage})`);
-            process.exit(1);
-        });
+                console.log(`Uploading ${file} to ${dest}`);
+
+            // we have to explicitly create any directories that don't exist yet
+            // (https://github.com/shiftpi/nextcloud-chunk-file-upload/issues/22)
+            let currDir = "";
+            for (let dir of dest.split("/").slice(0, -1)) {
+                currDir += `${dir}/`;
+                try {
+                    await axios.request({
+                        method: 'mkcol',
+                        url: `${basePath}/files/${userEnv}/${currDir}`,
+                        auth: {
+                            username: userEnv,
+                            password: tokenEnv
+                        }
+                    });
+                    if (!quiet)
+                        console.log(`Created directory ${currDir}`);
+                } catch (error) {
+                    // this is fine since the directory likely already exists
+                }
+            }
+
+            // use lib to upload file
+            await upload.uploadFile(`${baseDir}/${file}`, dest, chunkSizeEnv).then(e => {
+                if (!quiet)
+                    console.log(`Uploaded ${file} to ${dest} (${e})`);
+            }).catch(e => {
+                console.log(`Failed to upload file ${file} to ${dest} (${e}, error ${e.httpErrorCode}, ${e.httpErrorMessage})`);
+                process.exit(1);
+            });
+        }
     }
 }

@@ -20,7 +20,7 @@ if (!destEnv)
     throw "Missing required arg dest";
 
 const baseDir = process.env.PLUGIN_BASEDIR || ".";
-const chunkSizeEnv = process.env.PLUGIN_CHUNKSIZE || 50 * 1024 * 1024;
+const chunkSizeEnv = process.env.PLUGIN_CHUNKSIZE || 10 * 1024 * 1024;
 const quiet = process.env.PLUGIN_QUIET || false;
 
 upload();
@@ -31,7 +31,7 @@ async function upload() {
     for (let pattern of filesEnv.split(",")) {
         let files = await glob.glob(pattern, { cwd: baseDir });
         if (!files.length)
-            console.log("No files to upload");
+            console.log(`No files found for pattern ${pattern}`);
         for (let file of files) {
             let dest = `${destEnv}/${file}`;
             if (!quiet)
@@ -59,7 +59,7 @@ async function upload() {
             }
 
             // use lib to upload file
-            await upload.uploadFile(`${baseDir}/${file}`, dest, chunkSizeEnv).then(e => {
+            await upload.uploadFile(`${baseDir}/${file}`, dest, parseInt(chunkSizeEnv)).then(e => {
                 if (!quiet)
                     console.log(`Uploaded ${file} to ${dest} (${e})`);
             }).catch(e => {

@@ -14,6 +14,6 @@ steps:
         - "**/*.md"
       dest: Uploads/CoolMarkdownFiles # the destination directory
       basedir: "." # optional, local base directory for files, defaults to .
-      chunksize: # optional, chunk size in bytes, defaults to 52428800
+      chunksize: # optional, chunk size in bytes, defaults to 10485760, or 10 MiB
       quiet: false # optional, whether to reduce output
 ```

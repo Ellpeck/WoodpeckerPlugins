@@ -75,8 +75,6 @@ async function upload() {
             console.log(`No files found for pattern ${pattern}`);
         for (let file of files) {
             let dest = `${destEnv}/${file}`;
-            if (!quiet)
-                console.log(`Uploading ${file} to ${dest}`);
 
             // we have to explicitly create any directories that don't exist yet
             // (https://github.com/shiftpi/nextcloud-chunk-file-upload/issues/22)
@@ -84,7 +82,7 @@ async function upload() {
             for (let dir of dest.split("/").slice(0, -1)) {
                 currDir += `${dir}/`;
                 try {
-                    await axios.request({
+                    let response = await axios.request({
                         method: 'mkcol',
                         url: `${basePath}/files/${userEnv}/${currDir}`,
                         auth: {
@@ -94,7 +92,7 @@ async function upload() {
                         // 405 means the directory already exists
                         validateStatus: s => s == 201 || s == 405
                     });
-                    if (!quiet)
+                    if (response.status != 405 && !quiet)
                         console.log(`Created directory ${currDir}`);
                 } catch (error) {
                     console.log(`Failed to create directory ${currDir} (${error})`);
@@ -103,6 +101,8 @@ async function upload() {
             }
 
             // use lib to upload file
+            if (!quiet)
+                console.log(`Uploading ${file} to ${dest}`);
             await upload.uploadFile(`${baseDir}/${file}`, dest, parseInt(chunkSizeEnv)).then(e => {
                 if (!quiet)
                     console.log(`Uploaded ${file} to ${dest}`);

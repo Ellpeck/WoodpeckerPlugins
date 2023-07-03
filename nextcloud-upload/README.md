@@ -16,4 +16,6 @@ steps:
       basedir: "." # optional, local base directory for files, defaults to .
       chunksize: # optional, chunk size in bytes, defaults to 10485760, or 10 MiB
       quiet: false # optional, whether to reduce output
+      tags: # optional, a set of tags to apply to uploaded files, tag is expected to already exist
+        - mytag
 ```

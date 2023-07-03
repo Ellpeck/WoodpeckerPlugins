@@ -92,12 +92,20 @@ async function upload() {
                         // 405 means the directory already exists
                         validateStatus: s => s == 201 || s == 405
                     });
-                    if (response.status != 405 && !quiet)
-                        console.log(`Created directory ${currDir}`);
+                    if (response.status != 405) {
+                        if (!quiet)
+                            console.log(`Created directory ${dir}`);
+
+                        // add tags to directory too
+                        if (tagIds)
+                            await addTags(basePath, tagIds, dir, currDir);
+                    }
+
                 } catch (error) {
-                    console.log(`Failed to create directory ${currDir} (${error})`);
+                    console.log(`Failed to create directory ${dir} (${error})`);
                     process.exit(1);
                 }
+
             }
 
             // use lib to upload file
@@ -112,50 +120,52 @@ async function upload() {
             });
 
             // add tags
-            if (tagIds.size) {
-                try {
-                    // get file id: https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/basic.html#requesting-properties
-                    let response = await axios.request({
-                        method: "propfind",
-                        url: `${basePath}/files/${userEnv}/${dest}`,
-                        auth: {
-                            username: userEnv,
-                            password: tokenEnv
-                        },
-                        data: `<?xml version="1.0"?>
-                            <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
-                                <d:prop>
-                                    <oc:fileid/>
-                                </d:prop>
-                            </d:propfind>`
-                    });
-                    var data = JSON.parse(xml.toJson(response.data));
-                    let fileId = data["d:multistatus"]["d:response"]["d:propstat"]["d:prop"]["oc:fileid"];
-                    if (!quiet)
-                        console.log(`File id of file ${file} is ${fileId}`);
-
-                    // add tags: https://doc.owncloud.com/server/next/developer_manual/webdav_api/tags.html#assign-a-tag-to-a-file
-                    for (let [tag, tagId] of tagIds.entries()) {
-                        await axios.request({
-                            method: "put",
-                            url: `${basePath}/systemtags-relations/files/${fileId}/${tagId}`,
-                            auth: {
-                                username: userEnv,
-                                password: tokenEnv
-                            },
-                            // 409 conflicted means the tag is already applied
-                            validateStatus: s => s == 201 || s == 409
-                        });
-                        if (!quiet)
-                            console.log(`Added tag ${tag} to file ${file}`);
-                    }
-
-                } catch (error) {
-                    console.log(`Failed to assign tags ${tags} to file ${file} (${error})`);
-                    process.exit(1);
-                }
-
-            }
+            if (tagIds.size)
+                await addTags(basePath, tagIds, file, dest);
         }
+    }
+}
+
+async function addTags(basePath, tagIds, file, location) {
+    try {
+        // get file id: https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/basic.html#requesting-properties
+        let response = await axios.request({
+            method: "propfind",
+            url: `${basePath}/files/${userEnv}/${location}`,
+            auth: {
+                username: userEnv,
+                password: tokenEnv
+            },
+            data: `<?xml version="1.0"?>
+                <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+                    <d:prop>
+                        <oc:fileid/>
+                    </d:prop>
+                </d:propfind>`
+        });
+        var data = JSON.parse(xml.toJson(response.data));
+        let fileId = data["d:multistatus"]["d:response"]["d:propstat"]["d:prop"]["oc:fileid"];
+        if (!quiet)
+            console.log(`File id of ${file} is ${fileId}`);
+
+        // add tags: https://doc.owncloud.com/server/next/developer_manual/webdav_api/tags.html#assign-a-tag-to-a-file
+        for (let [tag, tagId] of tagIds.entries()) {
+            await axios.request({
+                method: "put",
+                url: `${basePath}/systemtags-relations/files/${fileId}/${tagId}`,
+                auth: {
+                    username: userEnv,
+                    password: tokenEnv
+                },
+                // 409 conflicted means the tag is already applied
+                validateStatus: s => s == 201 || s == 409
+            });
+            if (!quiet)
+                console.log(`Added tag ${tag} to ${file}`);
+        }
+
+    } catch (error) {
+        console.log(`Failed to assign tags ${tags} to ${file} (${error})`);
+        process.exit(1);
     }
 }

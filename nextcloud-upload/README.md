@@ -1,3 +1,13 @@
+---
+name: Nextcloud Upload
+authors: Ellpeck
+description: Upload files to Nextcloud using chunking and optionally add tags to files
+tags: [deploy, publish]
+containerImage: ellpeck/woodpecker-nextcloud-upload
+containerImageUrl: https://hub.docker.com/r/ellpeck/woodpecker-nextcloud-upload
+url: https://github.com/Ellpeck/WoodpeckerPlugins/tree/main/nextcloud-upload
+---
+
 # Nextcloud Upload
 Simple plugin to upload files to Nextcloud using chunking, based on a glob pattern and a destination location. Note that, since this uses Nextcloud's built-in chunking system, it likely doesn't work for other WebDAV applications.
 

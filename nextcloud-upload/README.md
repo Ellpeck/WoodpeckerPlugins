@@ -17,15 +17,19 @@ steps:
   upload:
     image: ellpeck/woodpecker-nextcloud-upload
     settings:
+      # required settings
       server: https://cloud.ellpeck.de # the server to use
       user: EllBot # the user
       token: access-token # the access token, or password if 2FA is disabled
       files: # the file(s), uses glob patterns
         - "**/*.md"
       dest: Uploads/CoolMarkdownFiles # the destination directory
-      basedir: "." # optional, local base directory for files, defaults to .
-      chunksize: # optional, chunk size in bytes, defaults to 10485760, or 10 MiB
-      quiet: false # optional, whether to reduce output
-      tags: # optional, a set of tags to apply to uploaded files, tag is expected to already exist
+
+      # optional settings
+      basedir: "." # local base directory for files, defaults to .
+      chunksize: # chunk size in bytes, defaults to 10485760, or 10 MiB
+      quiet: false # whether to reduce output
+      tags: # a set of tags to apply to uploaded files, tag is expected to already exist
         - mytag
+      flatten: false # whether to flatten directories, causing all files to be placed directly in dest
 ```

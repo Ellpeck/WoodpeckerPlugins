@@ -24,6 +24,7 @@ const baseDir = process.env.PLUGIN_BASEDIR || ".";
 const chunkSizeEnv = process.env.PLUGIN_CHUNKSIZE || 10 * 1024 * 1024;
 const quiet = process.env.PLUGIN_QUIET || false;
 const tags = process.env.PLUGIN_TAGS || "";
+const flatten = process.env.PLUGIN_FLATTEN || false;
 
 upload();
 
@@ -74,7 +75,9 @@ async function upload() {
         if (!files.length)
             console.log(`No files found for pattern ${pattern}`);
         for (let file of files) {
-            let dest = `${destEnv}/${file}`;
+            file = file.replaceAll("\\", "/");
+            let fileName = file.split("/").pop();
+            let dest = `${destEnv}/${flatten ? fileName : file}`;
 
             // we have to explicitly create any directories that don't exist yet
             // (https://github.com/shiftpi/nextcloud-chunk-file-upload/issues/22)
@@ -110,23 +113,23 @@ async function upload() {
 
             // use lib to upload file
             if (!quiet)
-                console.log(`Uploading ${file} to ${dest}`);
+                console.log(`Uploading ${fileName} to ${dest}`);
             await upload.uploadFile(`${baseDir}/${file}`, dest, parseInt(chunkSizeEnv)).then(e => {
                 if (!quiet)
-                    console.log(`Uploaded ${file} to ${dest}`);
+                    console.log(`Uploaded ${fileName} to ${dest}`);
             }).catch(e => {
-                console.log(`Failed to upload file ${file} to ${dest} (${e})`);
+                console.log(`Failed to upload ${fileName} to ${dest} (${e})`);
                 process.exit(1);
             });
 
             // add tags
             if (tagIds.size)
-                await addTags(basePath, tagIds, file, dest);
+                await addTags(basePath, tagIds, fileName, dest);
         }
     }
 }
 
-async function addTags(basePath, tagIds, file, location) {
+async function addTags(basePath, tagIds, fileName, location) {
     try {
         // get file id: https://docs.nextcloud.com/server/latest/developer_manual/client_apis/WebDAV/basic.html#requesting-properties
         let response = await axios.request({
@@ -146,7 +149,7 @@ async function addTags(basePath, tagIds, file, location) {
         var data = JSON.parse(xml.toJson(response.data));
         let fileId = data["d:multistatus"]["d:response"]["d:propstat"]["d:prop"]["oc:fileid"];
         if (!quiet)
-            console.log(`File id of ${file} is ${fileId}`);
+            console.log(`File id of ${fileName} is ${fileId}`);
 
         // add tags: https://doc.owncloud.com/server/next/developer_manual/webdav_api/tags.html#assign-a-tag-to-a-file
         for (let [tag, tagId] of tagIds.entries()) {
@@ -161,11 +164,11 @@ async function addTags(basePath, tagIds, file, location) {
                 validateStatus: s => s == 201 || s == 409
             });
             if (!quiet)
-                console.log(`Added tag ${tag} to ${file}`);
+                console.log(`Added tag ${tag} to ${fileName}`);
         }
 
     } catch (error) {
-        console.log(`Failed to assign tags ${tags} to ${file} (${error})`);
+        console.log(`Failed to assign tags ${tags} to ${fileName} (${error})`);
         process.exit(1);
     }
 }

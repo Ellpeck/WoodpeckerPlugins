@@ -25,11 +25,52 @@ const chunkSizeEnv = process.env.PLUGIN_CHUNKSIZE || 10 * 1024 * 1024;
 const quiet = process.env.PLUGIN_QUIET || false;
 const tags = process.env.PLUGIN_TAGS || "";
 const flatten = process.env.PLUGIN_FLATTEN || false;
+const retentionBase = process.env.PLUGIN_RETENTIONBASE || "";
+const retentionAmount = process.env.PLUGIN_RETENTIONAMOUNT || 0;
 
 upload();
 
 async function upload() {
     let basePath = `${serverEnv}/remote.php/dav`;
+
+    // delete files or directories that exceed the retention amount
+    if (retentionBase && retentionAmount) {
+        try {
+            let retentionPath = `${basePath}/files/${userEnv}/${retentionBase}`;
+            let response = await axios.request({
+                method: "propfind",
+                url: retentionPath,
+                auth: {
+                    username: userEnv,
+                    password: tokenEnv
+                },
+                // 404 means the directory doesn't exist, which is fine
+                validateStatus: s => s == 207 || s == 404
+            });
+            if (response.status != 404) {
+                let data = JSON.parse(xml.toJson(response.data));
+                let dirs = data["d:multistatus"]["d:response"].slice(1);
+                // sort directories by last modified
+                dirs.sort((a, b) => new Date(a["d:propstat"]["d:prop"]["d:getlastmodified"]) - new Date(b["d:propstat"]["d:prop"]["d:getlastmodified"]));
+                while (dirs.length > parseInt(retentionAmount)) {
+                    let dir = `${serverEnv}${dirs[0]["d:href"]}`;
+                    await axios.request({
+                        method: "delete",
+                        url: dir,
+                        auth: {
+                            username: userEnv,
+                            password: tokenEnv
+                        }
+                    });
+                    console.log(`Deleted directory ${dir.substring(retentionPath.length + 1)} because retention amount of ${retentionAmount} was reached`);
+                    dirs.splice(0, 1);
+                }
+            }
+        } catch (e) {
+            console.log(`Failed to delete old directories (${e})`);
+            process.exit(1);
+        }
+    }
 
     // find ids for the tags we want to assign later
     let tagIds = new Map();
@@ -52,7 +93,7 @@ async function upload() {
                     </d:prop>
                 </d:propfind>`
         });
-        var data = JSON.parse(xml.toJson(response.data))["d:multistatus"]["d:response"].map(e => e["d:propstat"]["d:prop"]);
+        let data = JSON.parse(xml.toJson(response.data))["d:multistatus"]["d:response"].map(e => e["d:propstat"]["d:prop"]);
         for (let tag of tags.split(",")) {
             let entry = data.find(e => e["oc:display-name"] == tag);
             if (!entry) {
@@ -146,7 +187,7 @@ async function addTags(basePath, tagIds, fileName, location) {
                     </d:prop>
                 </d:propfind>`
         });
-        var data = JSON.parse(xml.toJson(response.data));
+        let data = JSON.parse(xml.toJson(response.data));
         let fileId = data["d:multistatus"]["d:response"]["d:propstat"]["d:prop"]["oc:fileid"];
         if (!quiet)
             console.log(`File id of ${fileName} is ${fileId}`);

@@ -32,4 +32,6 @@ steps:
       tags: # a set of tags to apply to uploaded files, tag is expected to already exist
         - mytag
       flatten: false # whether to flatten directories, causing all files to be placed directly in dest
+      retentionamount: 7 # amount of children that retentionbase is allowed to have before oldest ones are deleted on upload
+      retentionbase: Uploads # directory that the retentionamount applies to
 ```

@@ -22,11 +22,12 @@ if (!destEnv)
 
 const baseDir = process.env.PLUGIN_BASEDIR || ".";
 const chunkSizeEnv = process.env.PLUGIN_CHUNKSIZE || 10 * 1024 * 1024;
-const quiet = process.env.PLUGIN_QUIET || false;
+const quiet = process.env.PLUGIN_QUIET == "true";
 const tags = process.env.PLUGIN_TAGS || "";
-const flatten = process.env.PLUGIN_FLATTEN || false;
+const flatten = process.env.PLUGIN_FLATTEN == "true";
 const retentionBase = process.env.PLUGIN_RETENTIONBASE || "";
 const retentionAmount = process.env.PLUGIN_RETENTIONAMOUNT || 0;
+const retentionSkipTrash = process.env.PLUGIN_RETENTIONSKIPTRASH == "true";
 
 upload();
 
@@ -53,7 +54,8 @@ async function upload() {
                 // sort directories by last modified
                 dirs.sort((a, b) => new Date(a["d:propstat"]["d:prop"]["d:getlastmodified"]) - new Date(b["d:propstat"]["d:prop"]["d:getlastmodified"]));
                 while (dirs.length > parseInt(retentionAmount)) {
-                    let dir = `${serverEnv}${dirs[0]["d:href"]}`;
+                    let dir = serverEnv + dirs[0]["d:href"];
+                    let dirName = dir.substring(retentionPath.length - retentionBase.length).replace(/\/$/, "");
                     await axios.request({
                         method: "delete",
                         url: dir,
@@ -62,7 +64,36 @@ async function upload() {
                             password: tokenEnv
                         }
                     });
-                    console.log(`Deleted directory ${dir.substring(retentionPath.length + 1)} because retention amount of ${retentionAmount} was reached`);
+
+                    // if we skip the trash, we actually also have to delete the item from the trash
+                    if (retentionSkipTrash) {
+                        let trashResponse = await axios.request({
+                            method: "propfind",
+                            url: `${basePath}/trashbin/${userEnv}/trash`,
+                            auth: {
+                                username: userEnv,
+                                password: tokenEnv
+                            },
+                            data: `<?xml version="1.0"?>
+                                <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+                                    <d:prop>
+                                        <nc:trashbin-original-location/>
+                                    </d:prop>
+                                </d:propfind>`
+                        });
+                        let trashContent = JSON.parse(xml.toJson(trashResponse.data))["d:multistatus"]["d:response"];
+                        let trashItem = trashContent.find(e => e["d:propstat"]["d:prop"]["nc:trashbin-original-location"] == dirName);
+                        await axios.request({
+                            method: "delete",
+                            url: serverEnv + trashItem["d:href"],
+                            auth: {
+                                username: userEnv,
+                                password: tokenEnv
+                            }
+                        });
+                    }
+
+                    console.log(`Deleted directory ${dirName} because retention amount of ${retentionAmount} was reached${retentionSkipTrash ? " (skipped trash)" : ""}`);
                     dirs.splice(0, 1);
                 }
             }

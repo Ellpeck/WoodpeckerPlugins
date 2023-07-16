@@ -53,7 +53,7 @@ async function upload() {
                 let dirs = data["d:multistatus"]["d:response"].slice(1);
                 // sort directories by last modified
                 dirs.sort((a, b) => new Date(a["d:propstat"]["d:prop"]["d:getlastmodified"]) - new Date(b["d:propstat"]["d:prop"]["d:getlastmodified"]));
-                while (dirs.length > parseInt(retentionAmount)) {
+                while (dirs.length >= parseInt(retentionAmount)) {
                     let dir = serverEnv + dirs[0]["d:href"];
                     let dirName = dir.substring(retentionPath.length - retentionBase.length).replace(/\/$/, "");
                     await axios.request({

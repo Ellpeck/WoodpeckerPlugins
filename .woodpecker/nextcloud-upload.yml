@@ -4,7 +4,7 @@
     settings:
       repo: ellpeck/woodpecker-nextcloud-upload
       dockerfile: nextcloud-upload/Dockerfile
-      platforms: windows/amd64, darwin/amd64, darwin/arm64, freebsd/amd64, linux/amd64, linux/arm64/v8
+      platforms: linux/amd64, linux/arm/v7, linux/arm64/v8
       tags: latest, ${CI_COMMIT_SHA}
       username: ellpeck
       password:

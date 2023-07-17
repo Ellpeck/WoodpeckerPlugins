@@ -1,5 +1,5 @@
 ﻿steps:
-  publish-nextcloud-upload:
+  publish:
     image: woodpeckerci/plugin-docker-buildx
     settings:
       repo: ellpeck/woodpecker-nextcloud-upload

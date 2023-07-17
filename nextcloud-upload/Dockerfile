@@ -1,4 +1,5 @@
-FROM node:latest
-ADD . /
+FROM --platform=$BUILDPLATFORM node:latest
+WORKDIR /bin
+ADD . /bin
 RUN npm install
-ENTRYPOINT ["node", "/run.js"]
+ENTRYPOINT ["node", "run.js"]

@@ -1,5 +1,5 @@
 FROM --platform=$BUILDPLATFORM node:latest
+ADD nextcloud-upload /bin
 WORKDIR /bin
-ADD ./ /bin
 RUN npm install /bin
-ENTRYPOINT ["node", "/bin/run.js"]
+ENTRYPOINT ["node", "run.js"]

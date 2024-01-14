@@ -1,6 +1,6 @@
 ---
 name: Nextcloud Upload
-authors: Ellpeck
+author: Ellpeck
 description: Upload files to Nextcloud using chunking and optionally add tags to files
 tags: [deploy, publish]
 containerImage: ellpeck/woodpecker-nextcloud-upload
